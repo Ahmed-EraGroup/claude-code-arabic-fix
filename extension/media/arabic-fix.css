@@ -5,6 +5,12 @@
   unicode-bidi: isolate;
 }
 
+/* When the content resolved to RTL, force right alignment even against
+   higher-specificity app rules (only affects RTL-resolved elements) */
+[dir="auto"]:dir(rtl) {
+  text-align: right !important;
+}
+
 /* Code must always stay left-to-right, even inside Arabic paragraphs */
 pre, code, pre[dir="auto"], code[dir="auto"] {
   direction: ltr;

@@ -18,6 +18,19 @@
     var p = node.parentElement;
     if (p.closest("pre,code")) return;
     if (!p.hasAttribute("dir")) p.setAttribute("dir", "auto");
+    // Climb past inline wrappers to the nearest block container, otherwise
+    // text-align has no effect (e.g. spans inside flex message bubbles).
+    var hops = 0;
+    while (p && hops < 6 && p !== document.body) {
+      var d;
+      try { d = getComputedStyle(p).display; } catch (e) { break; }
+      if (d.indexOf("inline") !== 0 && d !== "contents") {
+        if (!p.hasAttribute("dir")) p.setAttribute("dir", "auto");
+        break;
+      }
+      p = p.parentElement;
+      hops++;
+    }
   }
 
   function walkText(root) {
