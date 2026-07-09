@@ -1,0 +1,24 @@
+/*CLAUDE-ARABIC-FIX-BEGIN*/
+/* Align text to the resolved direction (RTL for Arabic, LTR for English) */
+[dir="auto"] {
+  text-align: start;
+  unicode-bidi: isolate;
+}
+
+/* Code must always stay left-to-right, even inside Arabic paragraphs */
+pre, code, pre[dir="auto"], code[dir="auto"] {
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: left;
+}
+
+/* Composer/textarea: each line resolves its own direction while typing */
+textarea[dir="auto"] {
+  unicode-bidi: plaintext;
+}
+
+/* Nicer Arabic rendering: slightly taller lines, only when the text resolved to RTL */
+p[dir="auto"]:dir(rtl), li[dir="auto"]:dir(rtl) {
+  line-height: 1.7;
+}
+/*CLAUDE-ARABIC-FIX-END*/
