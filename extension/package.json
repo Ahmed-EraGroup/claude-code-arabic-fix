@@ -1,0 +1,42 @@
+{
+  "name": "claude-code-arabic-fix",
+  "displayName": "Claude Code Arabic Fix",
+  "description": "Arabic/RTL fix for the Claude Code chat panel — auto-applies after every Claude Code update. إصلاح العربي داخل Claude Code",
+  "version": "1.0.0",
+  "publisher": "ahmed-eragroup",
+  "author": "Ahmed Aqlan (Era Group)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ahmed-EraGroup/claude-code-arabic-fix"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "arabic",
+    "rtl",
+    "claude",
+    "claude-code",
+    "anthropic"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "claudeArabicFix.apply",
+        "title": "Claude Arabic Fix: Apply / Re-apply — تطبيق الإصلاح"
+      },
+      {
+        "command": "claudeArabicFix.remove",
+        "title": "Claude Arabic Fix: Remove — إزالة الإصلاح"
+      }
+    ]
+  }
+}

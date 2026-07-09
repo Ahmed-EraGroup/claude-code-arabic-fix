@@ -6,7 +6,26 @@
 
 يصلّح اتجاه النص العربي (RTL) والمحاذاة والقوائم داخل نافذة محادثة Claude Code في Visual Studio Code — نفس فكرة إضافة "Claude Arabic Fix" لمتصفح كروم.
 
-## المتطلبات
+## ⭐ أسهل طريقة: التركيب كإضافة VS Code (موصى بها)
+
+**English:** Download `claude-code-arabic-fix-x.x.x.vsix` from the [latest release](https://github.com/Ahmed-EraGroup/claude-code-arabic-fix/releases/latest), then in VS Code: Extensions panel → `···` menu → **Install from VSIX**. The fix applies itself automatically — even after Claude Code updates.
+
+1. حمّل ملف `claude-code-arabic-fix-x.x.x.vsix` من [أحدث إصدار](https://github.com/Ahmed-EraGroup/claude-code-arabic-fix/releases/latest)
+2. في VS Code: افتح تبويب الإضافات (Extensions) → اضغط قائمة `···` أعلى التبويب → **Install from VSIX** → اختر الملف
+3. أعد تحميل النافذة لما تطلب منك — انتهينا ✅
+
+الإضافة **تعيد تطبيق الإصلاح تلقائيًا بعد كل تحديث لـ Claude Code** — ما تحتاج تسوي أي شيء يدوي بعدها. مصدر الإضافة في مجلد [`extension/`](extension/).
+
+أو من سطر الأوامر:
+```
+code --install-extension claude-code-arabic-fix-1.0.0.vsix
+```
+
+---
+
+## الطريقة اليدوية (سكربتات)
+
+### المتطلبات
 - VS Code مثبت فيه إضافة **Claude Code** (من Anthropic)
 - يدعم Windows و macOS و Linux
 
