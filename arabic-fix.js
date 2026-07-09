@@ -3,7 +3,7 @@
   "use strict";
   // Strong RTL characters: Arabic, Hebrew, Arabic presentation forms
   var RTL_RE = /[֑-߿ࡰ-ࣿיִ-﷽ﹰ-ﻼ]/;
-  var TAGS = "p,li,ul,ol,h1,h2,h3,h4,h5,h6,blockquote,textarea";
+  var TAGS = 'p,li,ul,ol,h1,h2,h3,h4,h5,h6,blockquote,textarea,[contenteditable="true"]';
 
   function fixEl(el) {
     if (!el || el.nodeType !== 1) return;
@@ -12,12 +12,30 @@
     el.setAttribute("dir", "auto");
   }
 
+  // True when the first strong-direction character is RTL (Arabic/Hebrew)
+  function firstStrongIsRTL(text) {
+    var m = (text || "").match(/[A-Za-z]|[֑-߿ࡰ-ࣿיִ-﷽ﹰ-ﻼ]/);
+    return !!(m && RTL_RE.test(m[0]));
+  }
+
   function fixTextParent(node) {
     if (!node || !node.parentElement) return;
     if (!RTL_RE.test(node.nodeValue || "")) return;
     var p = node.parentElement;
     if (p.closest("pre,code")) return;
     if (!p.hasAttribute("dir")) p.setAttribute("dir", "auto");
+
+    // User message bubbles are inline-blocks pinned left by their flex
+    // parent (align-items:flex-start) — dir/text-align can't move them,
+    // so pin the alignment with inline styles when the message is RTL.
+    if (firstStrongIsRTL(node.nodeValue)) {
+      var bubble = p.closest('[class*="userMessageContainer"]');
+      if (bubble) {
+        bubble.style.textAlign = "right";
+        bubble.setAttribute("dir", "rtl");
+        if (bubble.parentElement) bubble.parentElement.style.alignItems = "flex-end";
+      }
+    }
     // Climb past inline wrappers to the nearest block container, otherwise
     // text-align has no effect (e.g. spans inside flex message bubbles).
     var hops = 0;
