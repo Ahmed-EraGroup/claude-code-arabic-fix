@@ -20,11 +20,19 @@
     if (!p.hasAttribute("dir")) p.setAttribute("dir", "auto");
   }
 
+  function walkText(root) {
+    // Covers user messages and any text rendered in plain divs/spans
+    var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    var n;
+    while ((n = w.nextNode())) fixTextParent(n);
+  }
+
   function scan(root) {
     if (!root || root.nodeType !== 1) return;
     if (root.matches && root.matches(TAGS)) fixEl(root);
     var els = root.querySelectorAll ? root.querySelectorAll(TAGS) : [];
     for (var i = 0; i < els.length; i++) fixEl(els[i]);
+    walkText(root);
   }
 
   var pending = false;
