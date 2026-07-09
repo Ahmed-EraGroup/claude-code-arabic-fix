@@ -1,18 +1,21 @@
 # Claude Code Arabic Fix — إصلاح العربي لإضافة Claude Code
 
-Fixes Arabic/RTL text rendering inside the **Claude Code** extension chat panel in VS Code:
+Fixes Arabic & Hebrew (RTL) text rendering **inside the actual Claude Code chat panel** in VS Code — not a mirror, not a side panel, no lag. The real chat you type and read in simply works in RTL.
 
-- Auto-detects Arabic and switches paragraphs, lists, and headings to RTL with right alignment
+- **Fixes the real panel in place** — unlike mirror-panel extensions that show a delayed read-only copy of your chat beside the broken original, this fixes the chat itself: zero lag, and tool calls, images, and code all stay in one place
+- Auto-detects Arabic/Hebrew and switches paragraphs, lists, and headings to RTL with right alignment
+- Your own messages align to the right, like any proper RTL chat
 - Numbered and bulleted lists get their markers on the correct side
-- The composer auto-detects direction while you type, line by line
+- The composer auto-detects direction **while you type**
 - Code blocks always stay LTR, even inside Arabic text
 - **Re-applies itself automatically after every Claude Code update** — no manual steps
 
 ---
 
-يصلّح عرض النص العربي داخل نافذة محادثة **Claude Code** في VS Code:
+يصلّح عرض النص العربي **داخل نافذة محادثة Claude Code نفسها** — مو لوحة مرآة جانبية فيها نسخة متأخرة من المحادثة، بل النافذة الحقيقية اللي تكتب وتقرأ فيها:
 
 - اكتشاف تلقائي للعربي وتحويل الفقرات والقوائم والعناوين إلى RTL بمحاذاة يمين
+- رسائلك أنت تنسحب لليمين مثل أي تطبيق محادثة عربي محترم
 - علامات القوائم المرقمة والنقطية تظهر في الجهة الصحيحة
 - حقل الكتابة يكتشف الاتجاه تلقائيًا أثناء الكتابة
 - الأكواد البرمجية تبقى دائمًا LTR حتى داخل النص العربي

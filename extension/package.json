@@ -1,8 +1,8 @@
 {
   "name": "claude-code-arabic-fix",
   "displayName": "Claude Code Arabic Fix",
-  "description": "Arabic/RTL fix for the Claude Code chat panel — auto-applies after every Claude Code update. إصلاح العربي داخل Claude Code",
-  "version": "1.0.3",
+  "description": "Fixes Arabic & Hebrew RTL in the actual Claude Code chat panel — no mirror panel, no lag. Type and read RTL in the real chat. Auto-re-applies after every Claude Code update. إصلاح العربي داخل Claude Code نفسه",
+  "version": "1.0.4",
   "publisher": "ahmed-eragroup",
   "author": "Ahmed Aqlan (Era Group)",
   "license": "MIT",
@@ -18,10 +18,14 @@
   ],
   "keywords": [
     "arabic",
+    "hebrew",
     "rtl",
+    "rtl fix",
+    "bidi",
     "claude",
     "claude-code",
-    "anthropic"
+    "anthropic",
+    "right-to-left"
   ],
   "activationEvents": [
     "onStartupFinished"
