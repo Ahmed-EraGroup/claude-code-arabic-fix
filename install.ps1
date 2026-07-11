@@ -8,45 +8,48 @@ param([switch]$Remove)
 $ErrorActionPreference = "Stop"
 $here = $PSScriptRoot
 
-# Find the newest installed Claude Code extension
-$ext = Get-ChildItem "$env:USERPROFILE\.vscode\extensions" -Directory -Filter "anthropic.claude-code-*" |
-    Sort-Object Name -Descending | Select-Object -First 1
+# Patch every installed Claude Code version folder (auto-updates can leave
+# a new, not-yet-active folder next to the running one)
+$exts = Get-ChildItem "$env:USERPROFILE\.vscode\extensions" -Directory -Filter "anthropic.claude-code-*"
 
-if (-not $ext) {
+if (-not $exts) {
     Write-Host "Claude Code extension not found in ~/.vscode/extensions" -ForegroundColor Red
     exit 1
 }
-Write-Host "Target extension: $($ext.Name)" -ForegroundColor Cyan
-
-$targets = @(
-    @{ file = Join-Path $ext.FullName "webview\index.js";  patch = Join-Path $here "arabic-fix.js"  },
-    @{ file = Join-Path $ext.FullName "webview\index.css"; patch = Join-Path $here "arabic-fix.css" }
-)
 
 $blockRe = '(?s)\r?\n?/\*CLAUDE-ARABIC-FIX-BEGIN\*/.*?/\*CLAUDE-ARABIC-FIX-END\*/\r?\n?'
 
-foreach ($t in $targets) {
-    if (-not (Test-Path $t.file)) {
-        Write-Host "Skipping (not found): $($t.file)" -ForegroundColor Yellow
-        continue
-    }
+foreach ($ext in $exts) {
+    Write-Host "Target extension: $($ext.Name)" -ForegroundColor Cyan
 
-    # One-time backup of the pristine file
-    $bak = "$($t.file).bak"
-    if (-not (Test-Path $bak)) { Copy-Item $t.file $bak }
+    $targets = @(
+        @{ file = Join-Path $ext.FullName "webview\index.js";  patch = Join-Path $here "arabic-fix.js"  },
+        @{ file = Join-Path $ext.FullName "webview\index.css"; patch = Join-Path $here "arabic-fix.css" }
+    )
 
-    $content = Get-Content $t.file -Raw
-    # Strip any previously installed fix block (idempotent re-install)
-    $content = [regex]::Replace($content, $blockRe, "")
+    foreach ($t in $targets) {
+        if (-not (Test-Path $t.file)) {
+            Write-Host "  Skipping (not found): $($t.file)" -ForegroundColor Yellow
+            continue
+        }
 
-    if ($Remove) {
-        Set-Content -Path $t.file -Value $content -Encoding UTF8 -NoNewline
-        Write-Host "Removed fix from: $(Split-Path $t.file -Leaf)" -ForegroundColor Yellow
-    }
-    else {
-        $patch = Get-Content $t.patch -Raw
-        Set-Content -Path $t.file -Value ($content + "`n" + $patch) -Encoding UTF8 -NoNewline
-        Write-Host "Patched: $(Split-Path $t.file -Leaf)" -ForegroundColor Green
+        # One-time backup of the pristine file
+        $bak = "$($t.file).bak"
+        if (-not (Test-Path $bak)) { Copy-Item $t.file $bak }
+
+        $content = Get-Content $t.file -Raw
+        # Strip any previously installed fix block (idempotent re-install)
+        $content = [regex]::Replace($content, $blockRe, "")
+
+        if ($Remove) {
+            Set-Content -Path $t.file -Value $content -Encoding UTF8 -NoNewline
+            Write-Host "  Removed fix from: $(Split-Path $t.file -Leaf)" -ForegroundColor Yellow
+        }
+        else {
+            $patch = Get-Content $t.patch -Raw
+            Set-Content -Path $t.file -Value ($content + "`n" + $patch) -Encoding UTF8 -NoNewline
+            Write-Host "  Patched: $(Split-Path $t.file -Leaf)" -ForegroundColor Green
+        }
     }
 }
 

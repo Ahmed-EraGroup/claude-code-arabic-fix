@@ -9,14 +9,14 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 REMOVE=0
 [ "$1" = "--remove" ] && REMOVE=1
 
-# Find the newest installed Claude Code extension
-EXT=$(ls -d "$HOME/.vscode/extensions"/anthropic.claude-code-* 2>/dev/null | sort -V | tail -n 1)
+# Patch every installed Claude Code version folder (auto-updates can leave
+# a new, not-yet-active folder next to the running one)
+EXTS=$(ls -d "$HOME/.vscode/extensions"/anthropic.claude-code-* 2>/dev/null)
 
-if [ -z "$EXT" ]; then
+if [ -z "$EXTS" ]; then
   echo "ERROR: Claude Code extension not found in ~/.vscode/extensions"
   exit 1
 fi
-echo "Target extension: $(basename "$EXT")"
 
 patch_file() {
   local target="$1" patch="$2"
@@ -40,8 +40,11 @@ patch_file() {
   fi
 }
 
-patch_file "$EXT/webview/index.js"  "$HERE/arabic-fix.js"
-patch_file "$EXT/webview/index.css" "$HERE/arabic-fix.css"
+for EXT in $EXTS; do
+  echo "Target extension: $(basename "$EXT")"
+  patch_file "$EXT/webview/index.js"  "$HERE/arabic-fix.js"
+  patch_file "$EXT/webview/index.css" "$HERE/arabic-fix.css"
+done
 
 if [ "$REMOVE" = "1" ]; then
   echo ""

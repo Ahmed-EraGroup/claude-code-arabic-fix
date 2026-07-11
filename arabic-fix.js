@@ -3,7 +3,8 @@
   "use strict";
   // Strong RTL characters: Arabic, Hebrew, Arabic presentation forms
   var RTL_RE = /[֑-߿ࡰ-ࣿיִ-﷽ﹰ-ﻼ]/;
-  var TAGS = 'p,li,ul,ol,h1,h2,h3,h4,h5,h6,blockquote,textarea,[contenteditable="true"]';
+  var TAGS = 'p,li,ul,ol,h1,h2,h3,h4,h5,h6,blockquote,td,th,textarea,[contenteditable]:not([contenteditable="false"])';
+  var handledBubbles = typeof WeakSet !== "undefined" ? new WeakSet() : null;
 
   function fixEl(el) {
     if (!el || el.nodeType !== 1) return;
@@ -30,10 +31,11 @@
     // so pin the alignment with inline styles when the message is RTL.
     if (firstStrongIsRTL(node.nodeValue)) {
       var bubble = p.closest('[class*="userMessageContainer"]');
-      if (bubble) {
+      if (bubble && (!handledBubbles || !handledBubbles.has(bubble))) {
         bubble.style.textAlign = "right";
         bubble.setAttribute("dir", "rtl");
         if (bubble.parentElement) bubble.parentElement.style.alignItems = "flex-end";
+        if (handledBubbles) handledBubbles.add(bubble);
       }
     }
     // Climb past inline wrappers to the nearest block container, otherwise

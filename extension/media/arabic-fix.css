@@ -6,9 +6,18 @@
 }
 
 /* When the content resolved to RTL, force right alignment even against
-   higher-specificity app rules (only affects RTL-resolved elements) */
-[dir="auto"]:dir(rtl) {
+   higher-specificity app rules (only affects RTL-resolved elements).
+   Textareas are excluded: plaintext bidi aligns each line by its own
+   direction, so forcing right would misplace English lines. */
+[dir="auto"]:dir(rtl):not(textarea) {
   text-align: right !important;
+}
+
+/* The app indents some lists with physical padding-left, which doesn't
+   flip in RTL — mirror it so Arabic lists indent from the right */
+ul[dir="auto"]:dir(rtl), ol[dir="auto"]:dir(rtl) {
+  padding-left: 0 !important;
+  padding-inline-start: 2em !important;
 }
 
 /* Code must always stay left-to-right, even inside Arabic paragraphs */
