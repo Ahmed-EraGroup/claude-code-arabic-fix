@@ -18,8 +18,23 @@
 
 أو من سطر الأوامر:
 ```
-code --install-extension claude-code-arabic-fix-1.0.0.vsix
+code --install-extension claude-code-arabic-fix-1.2.0.vsix
 ```
+
+### الإعدادات (نسخة الإضافة)
+
+من `File → Preferences → Settings` وابحث عن `Claude Arabic Fix`:
+
+| الإعداد | الافتراضي | الوصف |
+| --- | --- | --- |
+| `claudeArabicFix.enabled` | `true` | تفعيل الإصلاح أو إزالته بالكامل |
+| `claudeArabicFix.fontFamily` | خط المحرر | الخط العربي، مثال: `Cairo, 'Noto Naskh Arabic', Tahoma` |
+| `claudeArabicFix.lineHeight` | `1.7` | ارتفاع السطر للنص العربي |
+| `claudeArabicFix.forceRtlLayout` | `false` | قلب تخطيط لوحة المحادثة كاملًا إلى RTL |
+| `claudeArabicFix.showReloadPrompt` | `true` | إظهار إشعار إعادة تحميل النافذة |
+| `claudeArabicFix.showStatusBarItem` | `true` | مؤشر شريط الحالة (اضغط عليه لشاشة التشخيص) |
+
+مؤشر شريط الحالة يبيّن هل الإصلاح مطبّق على إصدار Claude Code الشغّال حاليًا، وبالضغط عليه تفتح شاشة `Status / Diagnostics`.
 
 ---
 

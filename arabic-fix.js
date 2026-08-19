@@ -1,104 +1,176 @@
 /*CLAUDE-ARABIC-FIX-BEGIN*/
 (function () {
   "use strict";
-  // Strong RTL characters: Arabic, Hebrew, Arabic presentation forms
-  var RTL_RE = /[֑-߿ࡰ-ࣿיִ-﷽ﹰ-ﻼ]/;
-  var TAGS = 'p,li,ul,ol,h1,h2,h3,h4,h5,h6,blockquote,td,th,textarea,[contenteditable]:not([contenteditable="false"])';
-  var handledBubbles = typeof WeakSet !== "undefined" ? new WeakSet() : null;
 
-  function fixEl(el) {
-    if (!el || el.nodeType !== 1) return;
-    if (el.hasAttribute("dir")) return;
-    if (el.closest("pre,code")) return;
-    el.setAttribute("dir", "auto");
+  // ---- configuration (rewritten by the extension when settings change) ----
+  var CFG = { rtlBias: 0.5, maxScan: 400 }; /*CAF-CFG*/
+
+  // Strong RTL ranges: Arabic, Hebrew, Syriac, Thaana + Arabic presentation forms.
+  // Escapes (not literal glyphs) so the file survives any re-encoding of index.js.
+  var RTL_G = /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFC]/g;
+  var LTR_G = /[A-Za-z\u00C0-\u024F]/g;
+
+  // Anything code-like keeps its own direction and is never touched.
+  var SKIP = "pre,code,kbd,samp,.monaco-editor,svg";
+  var EDITABLE = 'textarea,[contenteditable]:not([contenteditable="false"])';
+  var BUBBLE = '[class*="userMessageContainer"],[class*="userMessage"]';
+
+  // el -> { len, dir }: lets us skip untouched nodes during streaming and
+  // tells us which elements are ours (so app-set dir attributes are respected).
+  var seen = new WeakMap();
+  var MAX_QUEUE = 400;
+
+  function directionOf(text) {
+    var s = text.length > CFG.maxScan ? text.slice(0, CFG.maxScan) : text;
+    var rtl = (s.match(RTL_G) || []).length;
+    if (!rtl) return (s.match(LTR_G) || []).length ? "ltr" : "";
+    var ltr = (s.match(LTR_G) || []).length;
+    // A mostly-Arabic line stays RTL even when it quotes English terms.
+    return rtl >= ltr * CFG.rtlBias ? "rtl" : "ltr";
   }
 
-  // True when the first strong-direction character is RTL (Arabic/Hebrew)
-  function firstStrongIsRTL(text) {
-    var m = (text || "").match(/[A-Za-z]|[֑-߿ࡰ-ࣿיִ-﷽ﹰ-ﻼ]/);
-    return !!(m && RTL_RE.test(m[0]));
+  function isEditable(el) {
+    return el.matches && el.matches(EDITABLE);
   }
 
-  function fixTextParent(node) {
-    if (!node || !node.parentElement) return;
-    if (!RTL_RE.test(node.nodeValue || "")) return;
-    var p = node.parentElement;
-    if (p.closest("pre,code")) return;
-    if (!p.hasAttribute("dir")) p.setAttribute("dir", "auto");
-
-    // User message bubbles are inline-blocks pinned left by their flex
-    // parent (align-items:flex-start) — dir/text-align can't move them,
-    // so pin the alignment with inline styles when the message is RTL.
-    if (firstStrongIsRTL(node.nodeValue)) {
-      var bubble = p.closest('[class*="userMessageContainer"]');
-      if (bubble && (!handledBubbles || !handledBubbles.has(bubble))) {
-        bubble.style.textAlign = "right";
-        bubble.setAttribute("dir", "rtl");
-        if (bubble.parentElement) bubble.parentElement.style.alignItems = "flex-end";
-        if (handledBubbles) handledBubbles.add(bubble);
-      }
+  function mark(el, dir) {
+    if (dir === "rtl") {
+      el.setAttribute("dir", "rtl");
+      el.classList.add("caf-rtl");
+    } else {
+      el.setAttribute("dir", "auto");
+      el.classList.remove("caf-rtl");
     }
-    // Climb past inline wrappers to the nearest block container, otherwise
-    // text-align has no effect (e.g. spans inside flex message bubbles).
+  }
+
+  function apply(el) {
+    if (!el || el.nodeType !== 1) return;
+    if (el.closest(SKIP)) return;
+    // Never fight a direction the app set itself.
+    if (el.hasAttribute("dir") && !seen.has(el)) return;
+
+    var text = el.textContent || "";
+    var prev = seen.get(el);
+    if (prev && prev.len === text.length) return;
+
+    // The composer resolves direction per line while typing — plain dir="auto"
+    // plus plaintext bidi, never a forced RTL block.
+    if (isEditable(el)) {
+      if (!prev) el.setAttribute("dir", "auto");
+      seen.set(el, { len: text.length, dir: "auto" });
+      return;
+    }
+
+    var dir = directionOf(text);
+    if (!dir) {
+      seen.set(el, { len: text.length, dir: "" });
+      return;
+    }
+    if (!prev || prev.dir !== dir) mark(el, dir);
+    seen.set(el, { len: text.length, dir: dir });
+
+    if (dir === "rtl") alignBubble(el);
+  }
+
+  // User messages are inline-block bubbles pinned left by a flex parent
+  // (align-items:flex-start) — direction alone cannot move them, so the row
+  // and the bubble get classes the stylesheet flips.
+  function alignBubble(el) {
+    var bubble = el.closest(BUBBLE);
+    if (!bubble || bubble.classList.contains("caf-rtl-bubble")) return;
+    bubble.classList.add("caf-rtl-bubble");
+    if (bubble.parentElement) bubble.parentElement.classList.add("caf-rtl-row");
+  }
+
+  // Text in this app lands in plain divs and spans as often as in <p>, so we
+  // walk up from the text node to the closest element that can actually be
+  // aligned (inline boxes ignore text-align).
+  function blockAncestor(el) {
     var hops = 0;
-    while (p && hops < 6 && p !== document.body) {
-      var d;
-      try { d = getComputedStyle(p).display; } catch (e) { break; }
-      if (d.indexOf("inline") !== 0 && d !== "contents") {
-        if (!p.hasAttribute("dir")) p.setAttribute("dir", "auto");
-        break;
+    while (el && el !== document.body && hops < 6) {
+      var display;
+      try {
+        display = getComputedStyle(el).display;
+      } catch (e) {
+        return el;
       }
-      p = p.parentElement;
+      if (display.indexOf("inline") !== 0 && display !== "contents") return el;
+      el = el.parentElement;
       hops++;
     }
+    return el && el !== document.body ? el : null;
   }
 
-  function walkText(root) {
-    // Covers user messages and any text rendered in plain divs/spans
-    var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
-    var n;
-    while ((n = w.nextNode())) fixTextParent(n);
+  function applyFromText(node) {
+    if (!node || !node.parentElement) return;
+    if (!(node.nodeValue || "").trim()) return;
+    var el = blockAncestor(node.parentElement);
+    if (el) apply(el);
   }
 
   function scan(root) {
     if (!root || root.nodeType !== 1) return;
-    if (root.matches && root.matches(TAGS)) fixEl(root);
-    var els = root.querySelectorAll ? root.querySelectorAll(TAGS) : [];
-    for (var i = 0; i < els.length; i++) fixEl(els[i]);
-    walkText(root);
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    var node;
+    var touched = new Set();
+    while ((node = walker.nextNode())) {
+      if (!(node.nodeValue || "").trim()) continue;
+      if (!node.parentElement) continue;
+      var el = blockAncestor(node.parentElement);
+      if (el && !touched.has(el)) {
+        touched.add(el);
+        apply(el);
+      }
+    }
+    // Empty containers that will stream text later still need the composer rule.
+    var editables = root.querySelectorAll ? root.querySelectorAll(EDITABLE) : [];
+    for (var i = 0; i < editables.length; i++) apply(editables[i]);
+    if (root.matches && root.matches(EDITABLE)) apply(root);
   }
 
-  var pending = false;
   var queue = [];
+  var pending = false;
 
   function flush() {
     pending = false;
-    var q = queue;
+    var batch = queue;
     queue = [];
-    for (var i = 0; i < q.length; i++) {
-      var m = q[i];
-      if (m.type === "characterData") {
-        fixTextParent(m.target);
-      } else if (m.type === "childList") {
-        for (var j = 0; j < m.addedNodes.length; j++) {
-          var n = m.addedNodes[j];
-          if (n.nodeType === 1) scan(n);
-          else if (n.nodeType === 3) fixTextParent(n);
+    try {
+      // A very large batch (chat switch, history load) is cheaper to handle as
+      // one pass over the container than as hundreds of individual updates.
+      if (batch.length > MAX_QUEUE) {
+        scan(document.body);
+        return;
+      }
+      for (var i = 0; i < batch.length; i++) {
+        var m = batch[i];
+        if (m.type === "characterData") {
+          applyFromText(m.target);
+        } else {
+          for (var j = 0; j < m.addedNodes.length; j++) {
+            var n = m.addedNodes[j];
+            if (n.nodeType === 1) scan(n);
+            else if (n.nodeType === 3) applyFromText(n);
+          }
         }
       }
+    } catch (e) {
+      // Never let a DOM shape change in Claude Code break the chat panel.
     }
   }
 
   function start() {
-    scan(document.body);
-    var obs = new MutationObserver(function (muts) {
-      for (var i = 0; i < muts.length; i++) queue.push(muts[i]);
+    try {
+      scan(document.body);
+    } catch (e) {}
+    var observer = new MutationObserver(function (mutations) {
+      for (var i = 0; i < mutations.length; i++) queue.push(mutations[i]);
       if (!pending) {
         pending = true;
         requestAnimationFrame(flush);
       }
     });
-    obs.observe(document.body, {
+    observer.observe(document.body, {
       childList: true,
       subtree: true,
       characterData: true

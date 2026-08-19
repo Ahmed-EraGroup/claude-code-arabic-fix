@@ -1,39 +1,86 @@
 /*CLAUDE-ARABIC-FIX-BEGIN*/
-/* Align text to the resolved direction (RTL for Arabic, LTR for English) */
+/* Defaults; the extension rewrites the block below from user settings. */
+:root {
+  --caf-line-height: 1.7;
+  --caf-font: inherit;
+}
+/*CAF-VARS*/
+
+/* Every element we touched aligns to its own resolved direction. */
 [dir="auto"] {
   text-align: start;
   unicode-bidi: isolate;
 }
 
-/* When the content resolved to RTL, force right alignment even against
-   higher-specificity app rules (only affects RTL-resolved elements).
-   Textareas are excluded: plaintext bidi aligns each line by its own
-   direction, so forcing right would misplace English lines. */
-[dir="auto"]:dir(rtl):not(textarea) {
+/* Elements whose text is predominantly Arabic/Hebrew: force the direction
+   against higher-specificity app rules. Editors are excluded — they resolve
+   direction per line while typing. */
+.caf-rtl:not(textarea):not([contenteditable="true"]) {
+  direction: rtl;
   text-align: right !important;
+  font-family: var(--caf-font);
+  line-height: var(--caf-line-height);
 }
 
-/* The app indents some lists with physical padding-left, which doesn't
-   flip in RTL — mirror it so Arabic lists indent from the right */
-ul[dir="auto"]:dir(rtl), ol[dir="auto"]:dir(rtl) {
+/* User message bubbles sit in a flex row pinned to the left; move the whole
+   bubble to the right when its text is RTL. */
+.caf-rtl-row {
+  align-items: flex-end !important;
+}
+.caf-rtl-bubble {
+  text-align: right;
+  direction: rtl;
+  margin-left: auto !important;
+  margin-right: 0 !important;
+}
+
+/* The app indents lists, quotes and nesting with physical left padding,
+   which does not flip in RTL — mirror it. */
+ul.caf-rtl, ol.caf-rtl {
   padding-left: 0 !important;
   padding-inline-start: 2em !important;
 }
+blockquote.caf-rtl {
+  padding-left: 0 !important;
+  padding-inline-start: 1em !important;
+  border-left: none !important;
+  border-inline-start: 2px solid currentColor !important;
+  opacity: 0.9;
+}
+li.caf-rtl {
+  text-align: right !important;
+}
 
-/* Code must always stay left-to-right, even inside Arabic paragraphs */
-pre, code, pre[dir="auto"], code[dir="auto"] {
-  direction: ltr;
+/* Tables: headers and cells follow their own text, borders stay put. */
+td.caf-rtl, th.caf-rtl {
+  text-align: right !important;
+}
+
+/* Code, terminal output and diffs always stay left-to-right, even when
+   quoted inside an Arabic paragraph. */
+pre, code, kbd, samp,
+pre[dir], code[dir], .monaco-editor {
+  direction: ltr !important;
+  unicode-bidi: isolate !important;
+  text-align: left !important;
+}
+/* Inline code inside an Arabic sentence must not drag the punctuation. */
+.caf-rtl code {
   unicode-bidi: isolate;
-  text-align: left;
 }
 
-/* Composer/textarea: each line resolves its own direction while typing */
-textarea[dir="auto"] {
+/* Links, file paths and inline latin runs keep their own direction so the
+   surrounding Arabic punctuation lands on the correct side. */
+.caf-rtl a,
+.caf-rtl [class*="path"],
+.caf-rtl [class*="filename"] {
+  unicode-bidi: isolate;
+}
+
+/* Composer: every line resolves its own direction as you type. */
+textarea[dir="auto"],
+[contenteditable="true"][dir="auto"] {
   unicode-bidi: plaintext;
-}
-
-/* Nicer Arabic rendering: slightly taller lines, only when the text resolved to RTL */
-p[dir="auto"]:dir(rtl), li[dir="auto"]:dir(rtl) {
-  line-height: 1.7;
+  text-align: start;
 }
 /*CLAUDE-ARABIC-FIX-END*/

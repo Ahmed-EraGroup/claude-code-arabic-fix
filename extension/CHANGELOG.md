@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.2.0
+
+- **New:** settings — pick the Arabic font (`claudeArabicFix.fontFamily`), line height, mirror the whole panel layout to RTL (`forceRtlLayout`), and turn the fix, the reload prompt or the status-bar item off
+- **New:** status-bar indicator showing whether the fix is live on the running Claude Code version, with a Status / Diagnostics command (which versions are patched, which patch stamp, current settings)
+- **Improved:** direction now follows the dominant script of a line, so an Arabic sentence quoting English terms no longer flips to LTR
+- **Improved:** quotes, nested lists and table cells align and indent correctly in RTL; links, file paths and inline code are bidi-isolated so Arabic punctuation lands on the right side
+- **Improved:** much lighter during streaming — each element is re-evaluated only when its text actually changes, and large DOM bursts collapse into a single pass
+- **Fixed:** the fix no longer overrides a direction Claude Code set itself
+- **Fixed:** patch code is written with unicode escapes so re-encoding of the bundle can never corrupt the RTL detection
+- **Fixed:** removing or disabling the fix restores the original bundle byte-for-byte
+
 ## 1.1.0
 
 - **Fixed:** updating this extension now refreshes the injected fix — previously an old patch stayed in place forever (patches are now version-stamped)
