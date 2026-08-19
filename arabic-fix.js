@@ -14,6 +14,7 @@
   var SKIP = "pre,code,kbd,samp,.monaco-editor,svg";
   var EDITABLE = 'textarea,[contenteditable]:not([contenteditable="false"])';
   var BUBBLE = '[class*="userMessageContainer"],[class*="userMessage"]';
+  var INLINE_TAGS = /^(SPAN|A|EM|STRONG|B|I|U|S|SMALL|SUB|SUP|MARK|CITE|Q|ABBR|TIME|LABEL|CODE|KBD|SAMP|VAR|FONT|BDI|BDO|BR|IMG|SVG)$/;
 
   // el -> { len, dir }: lets us skip untouched nodes during streaming and
   // tells us which elements are ours (so app-set dir attributes are respected).
@@ -50,24 +51,28 @@
     if (el.hasAttribute("dir") && !seen.has(el)) return;
 
     var text = el.textContent || "";
+    // Cheap change signature: a same-length swap ("abcde" -> Arabic of equal
+    // length) must still be re-checked, but streaming must not rescan
+    // untouched nodes on every frame.
+    var sig = text.length + ":" + text.charCodeAt(0) + ":" + text.charCodeAt(text.length - 1);
     var prev = seen.get(el);
-    if (prev && prev.len === text.length) return;
+    if (prev && prev.sig === sig) return;
 
     // The composer resolves direction per line while typing — plain dir="auto"
     // plus plaintext bidi, never a forced RTL block.
     if (isEditable(el)) {
       if (!prev) el.setAttribute("dir", "auto");
-      seen.set(el, { len: text.length, dir: "auto" });
+      seen.set(el, { sig: sig, dir: "auto" });
       return;
     }
 
     var dir = directionOf(text);
     if (!dir) {
-      seen.set(el, { len: text.length, dir: "" });
+      seen.set(el, { sig: sig, dir: "" });
       return;
     }
     if (!prev || prev.dir !== dir) mark(el, dir);
-    seen.set(el, { len: text.length, dir: dir });
+    seen.set(el, { sig: sig, dir: dir });
 
     if (dir === "rtl") alignBubble(el);
   }
@@ -85,16 +90,21 @@
   // Text in this app lands in plain divs and spans as often as in <p>, so we
   // walk up from the text node to the closest element that can actually be
   // aligned (inline boxes ignore text-align).
+  function isInline(el) {
+    var display = "";
+    try {
+      display = getComputedStyle(el).display || "";
+    } catch (e) {}
+    // A detached or not-yet-styled node reports no display at all; fall back
+    // to the tag so the direction still lands on a real block.
+    if (!display) return INLINE_TAGS.test(el.tagName || "");
+    return display.indexOf("inline") === 0 || display === "contents";
+  }
+
   function blockAncestor(el) {
     var hops = 0;
     while (el && el !== document.body && hops < 6) {
-      var display;
-      try {
-        display = getComputedStyle(el).display;
-      } catch (e) {
-        return el;
-      }
-      if (display.indexOf("inline") !== 0 && display !== "contents") return el;
+      if (!isInline(el)) return el;
       el = el.parentElement;
       hops++;
     }

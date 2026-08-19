@@ -43,11 +43,29 @@ function versionTag(context, cfg) {
   return "/*CAF-v" + version + "#" + hash(JSON.stringify(styleConfig(cfg))) + "*/";
 }
 
+// Settings end up inside a stylesheet we write into the app bundle, so a
+// value like `Cairo; } body{display:none}` must not be able to close the
+// declaration and inject rules of its own.
+function cssValue(raw, fallback) {
+  const clean = String(raw == null ? "" : raw)
+    .replace(/[{}();:@\\<>]/g, "")
+    .replace(/\/\*|\*\//g, "")
+    .replace(/[\r\n\t]+/g, " ")
+    .trim();
+  return clean || fallback;
+}
+
+function cssNumber(raw, fallback, min, max) {
+  const value = Number(raw);
+  if (!isFinite(value)) return fallback;
+  return Math.min(max, Math.max(min, value));
+}
+
 // Rewrites the CAF-VARS placeholder in the stylesheet with the user settings.
 function renderCss(source, cfg) {
   const vars = [":root {"];
-  vars.push("  --caf-line-height: " + (Number(cfg.lineHeight) || 1.7) + ";");
-  vars.push("  --caf-font: " + (cfg.fontFamily ? cfg.fontFamily : "inherit") + ";");
+  vars.push("  --caf-line-height: " + cssNumber(cfg.lineHeight, 1.7, 1, 3) + ";");
+  vars.push("  --caf-font: " + cssValue(cfg.fontFamily, "inherit") + ";");
   vars.push("}");
   if (cfg.forceRtlLayout) {
     vars.push("body { direction: rtl; }");
@@ -123,38 +141,52 @@ function removeFrom(targets) {
   }
 }
 
-// Patch every installed Claude Code version folder. Returns true when files
-// of the ACTIVE version changed (only then is a reload needed).
-function applyEverywhere(context, cfg, force) {
-  const tag = versionTag(context, cfg);
+// Patch every installed Claude Code version folder. Returns which folders the
+// work touched and which ones failed — one locked or read-only version folder
+// must never stop the running version from being fixed.
+function forEachWebview(context, handler) {
   const active = findActiveClaude();
-  const activeWebview = active ? path.join(active.extensionPath, "webview") : null;
-  let activeChanged = false;
+  const activeWebview = active ? path.resolve(path.join(active.extensionPath, "webview")) : null;
+  const result = { activeChanged: false, failures: [] };
   for (const dir of findWebviewDirs(context)) {
-    const targets = targetsFor(dir, context);
-    if (!targets.length) continue;
-    if (!force && hasCurrentPatch(targets, tag)) continue;
-    applyTo(targets, tag, cfg);
-    if (activeWebview && path.resolve(dir) === path.resolve(activeWebview)) {
-      activeChanged = true;
+    try {
+      if (handler(dir) === true && activeWebview && path.resolve(dir) === activeWebview) {
+        result.activeChanged = true;
+      }
+    } catch (err) {
+      result.failures.push(path.basename(path.dirname(dir)) + ": " + err.message);
     }
   }
-  return activeChanged;
+  return result;
+}
+
+function applyEverywhere(context, cfg, force) {
+  const tag = versionTag(context, cfg);
+  return forEachWebview(context, (dir) => {
+    const targets = targetsFor(dir, context);
+    if (!targets.length) return false;
+    if (!force && hasCurrentPatch(targets, tag)) return false;
+    applyTo(targets, tag, cfg);
+    return true;
+  });
 }
 
 function removeEverywhere(context) {
-  const active = findActiveClaude();
-  const activeWebview = active ? path.join(active.extensionPath, "webview") : null;
-  let activeChanged = false;
-  for (const dir of findWebviewDirs(context)) {
+  return forEachWebview(context, (dir) => {
     const targets = targetsFor(dir, context);
-    if (!targets.length || !hasAnyPatch(targets)) continue;
+    if (!targets.length || !hasAnyPatch(targets)) return false;
     removeFrom(targets);
-    if (activeWebview && path.resolve(dir) === path.resolve(activeWebview)) {
-      activeChanged = true;
-    }
+    return true;
+  });
+}
+
+function reportFailures(result) {
+  if (result.failures.length) {
+    vscode.window.showWarningMessage(
+      "Claude Arabic Fix could not patch: " + result.failures.join("; ")
+    );
   }
-  return activeChanged;
+  return result.activeChanged;
 }
 
 // ------------------------------------------------------------------- status
@@ -164,14 +196,23 @@ function inspect(context, cfg) {
   const active = findActiveClaude();
   const activeWebview = active ? path.resolve(path.join(active.extensionPath, "webview")) : null;
   const dirs = findWebviewDirs(context).map((dir) => {
-    const targets = targetsFor(dir, context);
-    return {
+    const info = {
       name: path.basename(path.dirname(dir)),
       isActive: activeWebview !== null && path.resolve(dir) === activeWebview,
-      files: targets.length,
-      current: targets.length > 0 && hasCurrentPatch(targets, tag),
-      patched: targets.length > 0 && hasAnyPatch(targets),
+      files: 0,
+      current: false,
+      patched: false,
+      error: null,
     };
+    try {
+      const targets = targetsFor(dir, context);
+      info.files = targets.length;
+      info.current = targets.length > 0 && hasCurrentPatch(targets, tag);
+      info.patched = targets.length > 0 && hasAnyPatch(targets);
+    } catch (err) {
+      info.error = err.message;
+    }
+    return info;
   });
   const activeDir = dirs.find((d) => d.isActive) || dirs[0];
   return { tag, dirs, activeDir, claudeFound: dirs.length > 0 };
@@ -214,7 +255,9 @@ function statusReport(context, cfg) {
     lines.push("Claude Code extension: NOT FOUND");
   } else {
     for (const d of state.dirs) {
-      const how = d.current
+      const how = d.error
+        ? "unreadable (" + d.error + ")"
+        : d.current
         ? "patched (current)"
         : d.patched
         ? "patched (outdated — reload needed)"
@@ -257,7 +300,7 @@ function activate(context) {
         return;
       }
       try {
-        applyEverywhere(context, cfg, true);
+        reportFailures(applyEverywhere(context, cfg, true));
         refresh();
         await promptReload(cfg, "Arabic fix applied — تم تطبيق إصلاح العربي، أعد تحميل النافذة");
       } catch (err) {
@@ -268,7 +311,7 @@ function activate(context) {
     vscode.commands.registerCommand("claudeArabicFix.remove", async () => {
       const cfg = readConfig();
       try {
-        removeEverywhere(context);
+        reportFailures(removeEverywhere(context));
         refresh();
         await promptReload(cfg, "Arabic fix removed — تمت إزالة الإصلاح، أعد تحميل النافذة");
       } catch (err) {
@@ -302,14 +345,14 @@ function activate(context) {
     const cfg = readConfig();
     try {
       if (!cfg.enabled) {
-        const changed = removeEverywhere(context);
+        const changed = reportFailures(removeEverywhere(context));
         updateStatusBar(context, cfg);
         if (changed && prompt) {
           promptReload(cfg, "Claude Arabic Fix disabled — تم تعطيل الإصلاح، أعد تحميل النافذة");
         }
         return;
       }
-      const activeChanged = applyEverywhere(context, cfg, false);
+      const activeChanged = reportFailures(applyEverywhere(context, cfg, false));
       updateStatusBar(context, cfg);
       if (activeChanged && prompt) {
         promptReload(

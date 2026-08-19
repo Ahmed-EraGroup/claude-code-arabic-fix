@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.1
+
+Found and fixed by a new automated test suite (43 tests: extension-host behaviour on a simulated extensions folder, plus the injected script running in a real DOM).
+
+- **Fixed:** a text replacement of the same length (e.g. an English word swapped for an Arabic one of equal length) was skipped and kept the wrong direction
+- **Fixed:** text inside nested inline elements could get the direction on the inline box instead of the block, so the alignment did nothing — the payload no longer depends on the browser reporting a computed display
+- **Fixed:** a font value containing CSS syntax could break or inject rules into the panel stylesheet; settings are now sanitized and the line height is clamped
+- **Fixed:** one locked or read-only Claude Code folder no longer stops the running version from being patched — failures are reported per folder and the diagnostics screen shows them
+
 ## 1.2.0
 
 - **New:** settings — pick the Arabic font (`claudeArabicFix.fontFamily`), line height, mirror the whole panel layout to RTL (`forceRtlLayout`), and turn the fix, the reload prompt or the status-bar item off

@@ -1,0 +1,13 @@
+{
+  "name": "claude-code-arabic-fix-dev",
+  "private": true,
+  "version": "1.2.1",
+  "description": "Development harness and tests for the Claude Code Arabic Fix VS Code extension",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "devDependencies": {
+    "jsdom": "^24.0.0"
+  },
+  "license": "MIT"
+}
