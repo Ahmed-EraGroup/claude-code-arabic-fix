@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.2
+
+- **Fixed:** an Arabic sentence split into sibling fragments (a bold word, a link, a streamed run) inside a flex row came out scrambled — each fragment was aligned on its own while the fragments themselves stayed in left-to-right order. The row is now flipped as one sentence. Reproduced in a real browser and covered by tests.
+- **Fixed:** layout rows (avatar, buttons, toolbars) are explicitly left alone — only rows made purely of text fragments are turned around.
+
 ## 1.2.1
 
 Found and fixed by a new automated test suite (43 tests: extension-host behaviour on a simulated extensions folder, plus the injected script running in a real DOM).

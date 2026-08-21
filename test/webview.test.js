@@ -264,3 +264,29 @@ test("streaming does not rescan the whole panel on every frame", async () => {
   assert.ok(calls < 200, "expected a bounded number of layout queries, got " + calls);
   p.close();
 });
+
+test("a sentence split across sibling fragments in a flex row stays in order", () => {
+  const p = panel(`
+    <div id="row" style="display:flex">
+      <span id="f1">لو قررت المضي، لا معنى للبدء بـ </span><strong id="f2">FundingPips</strong><span id="f3"> — أرخص بأضعاف من FTMO.</span>
+    </div>
+  `);
+  // Only the row can reorder the fragments; marking them one by one leaves
+  // the pieces themselves running left to right.
+  assert.strictEqual(p.dir("row"), "rtl");
+  assert.strictEqual(p.$("f1").hasAttribute("dir"), false);
+  assert.strictEqual(p.$("f2").hasAttribute("dir"), false);
+  assert.strictEqual(p.$("f3").hasAttribute("dir"), false);
+  p.close();
+});
+
+test("a structural flex row (avatar, buttons) is not turned around", () => {
+  const p = panel(`
+    <div id="toolbar" style="display:flex">
+      <div id="avatar">${AR}</div><button id="btn">إرسال</button>
+    </div>
+  `);
+  assert.strictEqual(p.$("toolbar").hasAttribute("dir"), false, "layout rows must keep their order");
+  assert.strictEqual(p.dir("avatar"), "rtl");
+  p.close();
+});

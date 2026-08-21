@@ -15,6 +15,7 @@
   var EDITABLE = 'textarea,[contenteditable]:not([contenteditable="false"])';
   var BUBBLE = '[class*="userMessageContainer"],[class*="userMessage"]';
   var INLINE_TAGS = /^(SPAN|A|EM|STRONG|B|I|U|S|SMALL|SUB|SUP|MARK|CITE|Q|ABBR|TIME|LABEL|CODE|KBD|SAMP|VAR|FONT|BDI|BDO|BR|IMG|SVG)$/;
+  var FLEXISH = /^(inline-)?(flex|grid)$/;
 
   // el -> { len, dir }: lets us skip untouched nodes during streaming and
   // tells us which elements are ours (so app-set dir attributes are respected).
@@ -90,25 +91,61 @@
   // Text in this app lands in plain divs and spans as often as in <p>, so we
   // walk up from the text node to the closest element that can actually be
   // aligned (inline boxes ignore text-align).
-  function isInline(el) {
-    var display = "";
+  function displayOf(el) {
     try {
-      display = getComputedStyle(el).display || "";
-    } catch (e) {}
+      return getComputedStyle(el).display || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function isInline(el) {
+    var display = displayOf(el);
     // A detached or not-yet-styled node reports no display at all; fall back
     // to the tag so the direction still lands on a real block.
     if (!display) return INLINE_TAGS.test(el.tagName || "");
     return display.indexOf("inline") === 0 || display === "contents";
   }
 
+  // A flex/grid container whose children are only text fragments (spans,
+  // bold runs, links). Its children are blockified, so marking them
+  // individually leaves the fragments themselves in left-to-right order —
+  // only the container can put an Arabic sentence back in the right order.
+  function isTextRow(el) {
+    if (!el || !FLEXISH.test(displayOf(el))) return false;
+    var kids = el.children;
+    if (!kids || !kids.length) return false;
+    for (var i = 0; i < kids.length; i++) {
+      if (!INLINE_TAGS.test(kids[i].tagName || "")) return false;
+    }
+    return true;
+  }
+
   function blockAncestor(el) {
     var hops = 0;
     while (el && el !== document.body && hops < 6) {
-      if (!isInline(el)) return el;
+      if (!isInline(el)) break;
+      // A child of a flex/grid container is blockified: it can be aligned on
+      // its own, and climbing past it would hand the direction to a layout
+      // row that only wants its items left where they are.
+      if (el.parentElement && FLEXISH.test(displayOf(el.parentElement))) break;
       el = el.parentElement;
       hops++;
     }
-    return el && el !== document.body ? el : null;
+    if (!el || el === document.body) return null;
+    // Climb out of a fragmented text row so the whole sentence is ordered as
+    // one run instead of a row of independently-aligned pieces.
+    var guard = 0;
+    while (
+      el.parentElement &&
+      el.parentElement !== document.body &&
+      isTextRow(el.parentElement) &&
+      guard < 4
+    ) {
+      el = el.parentElement;
+      guard++;
+    }
+    return el;
   }
 
   function applyFromText(node) {
