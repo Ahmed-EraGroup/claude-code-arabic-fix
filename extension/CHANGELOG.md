@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.3
+
+- **Fixed:** a regression from 1.2.2 — the panel layout itself could be mirrored: tool cards drifted to the right in a staircase, indentation flipped and code blocks were clipped. `direction` is inherited, so flipping a box flips everything inside it. The direction is now only ever applied to boxes that contain text alone, never to boxes that hold layout (tool cards, buttons, code, nested containers).
+- **Improved:** an English tool row sitting next to an Arabic message is left alone instead of being pulled right.
+
 ## 1.2.2
 
 - **Fixed:** an Arabic sentence split into sibling fragments (a bold word, a link, a streamed run) inside a flex row came out scrambled — each fragment was aligned on its own while the fragments themselves stayed in left-to-right order. The row is now flipped as one sentence. Reproduced in a real browser and covered by tests.

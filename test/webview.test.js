@@ -290,3 +290,30 @@ test("a structural flex row (avatar, buttons) is not turned around", () => {
   assert.strictEqual(p.dir("avatar"), "rtl");
   p.close();
 });
+
+test("a container that wraps layout is never flipped", () => {
+  const p = panel(`
+    <div id="msg">
+      <p id="line">${AR}</p>
+      <div id="toolcard" style="display:flex"><span id="label">Bash</span><span id="desc">Check something</span></div>
+      <pre id="cmd"><code>ls -la</code></pre>
+    </div>
+  `);
+  // Flipping #msg would mirror the tool card, its indentation and the code.
+  assert.strictEqual(p.$("msg").hasAttribute("dir"), false, "the wrapper must keep the layout");
+  assert.strictEqual(p.dir("line"), "rtl", "the sentence inside still flips");
+  assert.strictEqual(p.$("cmd").hasAttribute("dir"), false);
+  p.close();
+});
+
+test("an English tool row is not disturbed by an Arabic message next to it", () => {
+  const p = panel(`
+    <div id="wrap">
+      <p id="say">${AR}</p>
+      <div id="row" style="display:flex"><span>Bash</span><span>Clone the repo</span></div>
+    </div>
+  `);
+  assert.strictEqual(p.$("row").getAttribute("dir"), "auto", "an English row must not become RTL");
+  assert.strictEqual(p.dir("say"), "rtl");
+  p.close();
+});

@@ -16,6 +16,11 @@
   var BUBBLE = '[class*="userMessageContainer"],[class*="userMessage"]';
   var INLINE_TAGS = /^(SPAN|A|EM|STRONG|B|I|U|S|SMALL|SUB|SUP|MARK|CITE|Q|ABBR|TIME|LABEL|CODE|KBD|SAMP|VAR|FONT|BDI|BDO|BR|IMG|SVG)$/;
   var FLEXISH = /^(inline-)?(flex|grid)$/;
+  // Elements that carry layout rather than text flow. `direction` is an
+  // inherited property, so flipping a box that holds any of these mirrors the
+  // whole subtree — tool cards, indentation, buttons — not just the sentence.
+  var STRUCTURAL =
+    "div,section,article,header,footer,nav,aside,main,form,button,input,textarea,select,table,pre,hr,video,canvas,iframe,ul,ol";
 
   // el -> { len, dir }: lets us skip untouched nodes during streaming and
   // tells us which elements are ours (so app-set dir attributes are respected).
@@ -72,6 +77,13 @@
       seen.set(el, { sig: sig, dir: "" });
       return;
     }
+    // A box that wraps layout is left alone; the text blocks inside it are
+    // marked on their own, so the panel's structure never gets mirrored.
+    if (dir === "rtl" && !isTextOnly(el)) {
+      seen.set(el, { sig: sig, dir: "" });
+      alignBubble(el);
+      return;
+    }
     if (!prev || prev.dir !== dir) mark(el, dir);
     seen.set(el, { sig: sig, dir: dir });
 
@@ -111,6 +123,15 @@
   // bold runs, links). Its children are blockified, so marking them
   // individually leaves the fragments themselves in left-to-right order —
   // only the container can put an Arabic sentence back in the right order.
+  // True when the element holds text only — no nested layout to mirror.
+  function isTextOnly(el) {
+    try {
+      return !el.querySelector(STRUCTURAL);
+    } catch (e) {
+      return false;
+    }
+  }
+
   function isTextRow(el) {
     if (!el || !FLEXISH.test(displayOf(el))) return false;
     var kids = el.children;
@@ -118,7 +139,7 @@
     for (var i = 0; i < kids.length; i++) {
       if (!INLINE_TAGS.test(kids[i].tagName || "")) return false;
     }
-    return true;
+    return isTextOnly(el);
   }
 
   function blockAncestor(el) {
