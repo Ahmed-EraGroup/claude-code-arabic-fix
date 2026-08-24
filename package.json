@@ -1,13 +1,17 @@
 {
   "name": "claude-code-arabic-fix-dev",
   "private": true,
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Development harness and tests for the Claude Code Arabic Fix VS Code extension",
   "scripts": {
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "test:dom": "node --test test/webview.test.js",
+    "test:host": "node --test test/extension.test.js",
+    "test:browser": "node --test test/browser.test.js"
   },
   "devDependencies": {
-    "jsdom": "^24.0.0"
+    "jsdom": "^24.0.0",
+    "puppeteer-core": "^25.8.0"
   },
   "license": "MIT"
 }

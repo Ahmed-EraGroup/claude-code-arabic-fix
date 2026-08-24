@@ -2,7 +2,7 @@
   "name": "claude-code-arabic-fix",
   "displayName": "Claude Code Arabic Fix",
   "description": "Fixes Arabic & Hebrew RTL in the actual Claude Code chat panel — no mirror panel, no lag. Type and read RTL in the real chat, pick your Arabic font, and it auto-re-applies after every Claude Code update. إصلاح العربي داخل Claude Code نفسه",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "publisher": "ahmed-eragroup",
   "author": "Ahmed Aqlan (Era Group)",
   "license": "MIT",

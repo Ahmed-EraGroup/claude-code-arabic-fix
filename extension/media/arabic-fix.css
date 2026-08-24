@@ -56,6 +56,14 @@ td.caf-rtl, th.caf-rtl {
   text-align: right !important;
 }
 
+/* A table only takes the width of its content, and a block box does not
+   follow text-align — so an Arabic table would sit on the left of an
+   otherwise right-aligned answer. Push it to the right instead. */
+table.caf-rtl {
+  margin-left: auto !important;
+  margin-right: 0 !important;
+}
+
 /* Code, terminal output and diffs always stay left-to-right, even when
    quoted inside an Arabic paragraph. */
 pre, code, kbd, samp,

@@ -21,6 +21,8 @@
   // whole subtree — tool cards, indentation, buttons — not just the sentence.
   var STRUCTURAL =
     "div,section,article,header,footer,nav,aside,main,form,button,input,textarea,select,table,pre,hr,video,canvas,iframe,ul,ol";
+  // Layout a table must not contain for us to flip its column order.
+  var TABLE_BLOCKERS = "table,div,form,button,input,textarea,select,canvas,iframe,video";
 
   // el -> { len, dir }: lets us skip untouched nodes during streaming and
   // tells us which elements are ours (so app-set dir attributes are respected).
@@ -87,7 +89,10 @@
     if (!prev || prev.dir !== dir) mark(el, dir);
     seen.set(el, { sig: sig, dir: dir });
 
-    if (dir === "rtl") alignBubble(el);
+    if (dir === "rtl") {
+      alignBubble(el);
+      alignTable(el);
+    }
   }
 
   // User messages are inline-block bubbles pinned left by a flex parent
@@ -98,6 +103,26 @@
     if (!bubble || bubble.classList.contains("caf-rtl-bubble")) return;
     bubble.classList.add("caf-rtl-bubble");
     if (bubble.parentElement) bubble.parentElement.classList.add("caf-rtl-row");
+  }
+
+  // A table is only as wide as its content and a block box ignores
+  // text-align, so an Arabic table would sit on the left of a right-aligned
+  // answer with its first column on the wrong side. The table itself carries
+  // the direction; the cells keep resolving their own text.
+  function alignTable(el) {
+    var tag = el.tagName;
+    if (tag !== "TD" && tag !== "TH") return;
+    var table = el.closest("table");
+    if (!table || table.classList.contains("caf-rtl")) return;
+    if (table.hasAttribute("dir") && !seen.has(table)) return;
+    try {
+      if (table.querySelector(TABLE_BLOCKERS)) return;
+    } catch (e) {
+      return;
+    }
+    if (directionOf(table.textContent || "") !== "rtl") return;
+    mark(table, "rtl");
+    seen.set(table, { sig: "table", dir: "rtl" });
   }
 
   // Text in this app lands in plain divs and spans as often as in <p>, so we
@@ -132,14 +157,33 @@
     }
   }
 
+  // Fragments of one sentence are painted edge to edge. A control strip (the
+  // composer, a toolbar) spaces its items out — flipping that would swap the
+  // buttons around, so the spacing is what tells the two apart.
+  function fragmentsAreContiguous(el) {
+    var kids = el.children;
+    var prev = null;
+    for (var i = 0; i < kids.length; i++) {
+      var r;
+      try {
+        r = kids[i].getBoundingClientRect();
+      } catch (e) {
+        return false;
+      }
+      if (prev && Math.abs(r.top - prev.top) < 2 && r.left - prev.right > 4) return false;
+      prev = r;
+    }
+    return true;
+  }
+
   function isTextRow(el) {
     if (!el || !FLEXISH.test(displayOf(el))) return false;
     var kids = el.children;
-    if (!kids || !kids.length) return false;
+    if (!kids || kids.length < 2) return false;
     for (var i = 0; i < kids.length; i++) {
       if (!INLINE_TAGS.test(kids[i].tagName || "")) return false;
     }
-    return isTextOnly(el);
+    return isTextOnly(el) && fragmentsAreContiguous(el);
   }
 
   function blockAncestor(el) {

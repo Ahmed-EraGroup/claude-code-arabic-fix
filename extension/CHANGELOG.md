@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.4
+
+Adds a real-browser test suite (33 tests in headless Chrome that measure where the text and boxes actually land) on top of the existing 47 — 80 in total. Two real bugs it caught:
+
+- **Fixed:** Arabic tables were left on the left of a right-aligned answer with their first column on the wrong side. A table only takes the width of its content and a block box ignores text-align, so the table itself now carries the direction: first column on the right, table pushed to the right. English tables are untouched.
+- **Fixed:** the composer row could have its buttons swapped when the text was Arabic. A row of sentence fragments is painted edge to edge while a control strip spaces its items out — the spacing now tells the two apart, so toolbars and the composer keep their layout.
+
 ## 1.2.3
 
 - **Fixed:** a regression from 1.2.2 — the panel layout itself could be mirrored: tool cards drifted to the right in a staircase, indentation flipped and code blocks were clipped. `direction` is inherited, so flipping a box flips everything inside it. The direction is now only ever applied to boxes that contain text alone, never to boxes that hold layout (tool cards, buttons, code, nested containers).
