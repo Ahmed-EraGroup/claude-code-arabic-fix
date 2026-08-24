@@ -22,16 +22,15 @@
   line-height: var(--caf-line-height);
 }
 
-/* User message bubbles sit in a flex row pinned to the left; move the whole
-   bubble to the right when its text is RTL. */
-.caf-rtl-row {
-  align-items: flex-end !important;
-}
+/* User message bubbles sit in a flex line pinned to the left. The bubble
+   moves itself with an auto margin and aligns itself in a column layout —
+   never by changing the parent, which would move its siblings too. */
 .caf-rtl-bubble {
   text-align: right;
   direction: rtl;
   margin-left: auto !important;
   margin-right: 0 !important;
+  align-self: flex-end;
 }
 
 /* The app indents lists, quotes and nesting with physical left padding,

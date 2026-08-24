@@ -112,15 +112,16 @@ test("the composer resolves direction per line instead of flipping the box", () 
   p.close();
 });
 
-test("Arabic user messages are pinned to the right of the flex row", () => {
+test("Arabic user messages are flagged, and only the bubble is touched", () => {
   const p = panel(`
     <div class="messageRow" id="row-ar"><div class="userMessageContainer" id="bub-ar"><span>${AR}</span></div></div>
     <div class="messageRow" id="row-en"><div class="userMessageContainer" id="bub-en"><span>hello there</span></div></div>
   `);
   assert.ok(p.$("bub-ar").classList.contains("caf-rtl-bubble"));
-  assert.ok(p.$("row-ar").classList.contains("caf-rtl-row"));
+  // Changing the row would move every sibling in a column layout.
+  assert.strictEqual(p.$("row-ar").className, "messageRow");
   assert.ok(!p.$("bub-en").classList.contains("caf-rtl-bubble"));
-  assert.ok(!p.$("row-en").classList.contains("caf-rtl-row"));
+  assert.strictEqual(p.$("row-en").className, "messageRow");
   p.close();
 });
 

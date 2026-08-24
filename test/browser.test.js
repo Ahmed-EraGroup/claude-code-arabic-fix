@@ -348,3 +348,35 @@ test("streaming into a busy panel raises no console errors", { skip }, async () 
   assert.deepStrictEqual(page.errors, []);
   await page.close();
 });
+
+test("an Arabic user message does not drag the tool cards with it", { skip }, async () => {
+  const page = await render(`
+    <div class="row" id="row"><div class="userMessageContainer" id="bubble"><span>ايوه ثبته</span></div></div>
+    <p id="say">${AR}</p>
+    <div class="tool" id="card"><div class="toolhead"><span>Bash</span><span>Update project memory</span></div></div>`);
+  const row = await page.box("#row");
+  const body = await page.box("body");
+  const bubble = await page.box("#bubble");
+  const card = await page.box("#card");
+  assert.ok(row.right - bubble.right < 12, "the bubble should still hug the right");
+  assert.ok(card.left - body.left < 60, "the tool card drifted right by " + (card.left - body.left));
+  await page.close();
+});
+
+test("a bubble in a column list leaves its siblings where they are", { skip }, async () => {
+  const page = await render(`
+    <div id="col" style="display:flex;flex-direction:column;gap:8px">
+      <div class="userMessageContainer" id="bubble"><span>ايوه ثبته</span></div>
+      <div class="tool" id="card"><div class="toolhead"><span>Bash</span><span>Verify installation</span></div></div>
+      <p id="p">${AR}</p>
+    </div>`);
+  const col = await page.box("#col");
+  const bubble = await page.box("#bubble");
+  const card = await page.box("#card");
+  const para = await page.box("#p");
+  assert.ok(col.right - bubble.right < 12, "the bubble hugs the right");
+  assert.ok(card.left - col.left < 30, "the tool card drifted right by " + (card.left - col.left));
+  assert.ok(card.width > col.width * 0.8, "the tool card must keep its full width");
+  assert.ok(para.left - col.left < 12, "the paragraph box must not shrink to the right");
+  await page.close();
+});

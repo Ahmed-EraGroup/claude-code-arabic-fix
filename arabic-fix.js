@@ -95,14 +95,14 @@
     }
   }
 
-  // User messages are inline-block bubbles pinned left by a flex parent
-  // (align-items:flex-start) — direction alone cannot move them, so the row
-  // and the bubble get classes the stylesheet flips.
+  // User messages are inline-block bubbles pinned left by their flex parent —
+  // direction alone cannot move them. The bubble pushes itself over with an
+  // auto margin: touching the parent's alignment instead would drag every
+  // sibling (tool cards, code blocks) along with it.
   function alignBubble(el) {
     var bubble = el.closest(BUBBLE);
     if (!bubble || bubble.classList.contains("caf-rtl-bubble")) return;
     bubble.classList.add("caf-rtl-bubble");
-    if (bubble.parentElement) bubble.parentElement.classList.add("caf-rtl-row");
   }
 
   // A table is only as wide as its content and a block box ignores

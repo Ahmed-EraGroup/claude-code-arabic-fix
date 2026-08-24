@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.5
+
+- **Fixed:** an Arabic user message dragged its neighbours to the right — tool cards next to it were indented in a staircase and lost their full width. The bubble was moving itself by changing its parent's alignment, which in a column layout moves every sibling. It now pushes itself over with its own margin and leaves the rest of the conversation alone.
+
 ## 1.2.4
 
 Adds a real-browser test suite (33 tests in headless Chrome that measure where the text and boxes actually land) on top of the existing 47 — 80 in total. Two real bugs it caught:
